@@ -13,6 +13,9 @@ app.get('/', (req, res) => {
   res.send('Backend funcionando');
 });
 
+const spinRoutes = require('./routes/juegoRoute');
+app.use('/juego', spinRoutes);
+
 // Conectar a la base de datos y luego iniciar servidor
 connectDB().then(() => {
   app.listen(PORT, () => {
