@@ -13,6 +13,9 @@ app.get('/', (req, res) => {
   res.send('Backend funcionando');
 });
 
+const authRoutes = require('./routes/authRoutes');
+app.use('/auth', authRoutes);
+
 // Conectar a la base de datos y luego iniciar servidor
 connectDB().then(() => {
   app.listen(PORT, () => {
