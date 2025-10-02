@@ -13,17 +13,25 @@ exports.ejecutarSpin = async (req, res) => {
             .input('apuesta', sql.Int, apuesta)
             .execute('EjecutarSpin');
 
-        // Recordset 1: resumen del spin (premio total)
-        const spin = result.recordsets[0][0];
+        // Verificar que los recordsets existen
+        // Esperamos 3 recordsets: Spin, Matriz, Combinaciones
+        if (!result.recordsets || result.recordsets.length < 3) {
+            return res.status(500).json({
+                success: false,
+                mensaje: 'El SP no devolvió resultados completos'
+            });
+        }
 
-        // Recordset 2: matriz generada
-        const matriz = result.recordsets[1];
+        const spin = result.recordsets[0][0];          // id_spin y premio_total
+        const matriz = result.recordsets[1];           // Matriz generada con nombres y valores
+        const combinaciones = result.recordsets[2];    // Combinaciones ganadoras
 
-        // Recordset 3: combinaciones ganadoras
-        const combinaciones = result.recordsets[2];
+        // Traer saldo actualizado del usuario
+        const saldoResult = await pool.request()
+            .input('id_usuario', sql.Int, id_usuario)
+            .query('SELECT saldo FROM Usuario WHERE id_usuario = @id_usuario');
 
-        // Recordset 4: saldo actualizado
-        const saldo = result.recordsets[3][0];
+        const saldo = saldoResult.recordset[0] ? saldoResult.recordset[0].saldo : null;
 
         res.json({
             success: true,
