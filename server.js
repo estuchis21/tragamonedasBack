@@ -1,12 +1,20 @@
 require('dotenv').config();
 const express = require('express');
 const connectDB = require('./config/db');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware para JSON
 app.use(express.json());
+
+// Middleware
+app.use(cors({
+  origin: "http://localhost:5173", // permitimos tu frontend
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true
+}));
 
 const spinRoutes = require('./routes/juegoRoute');
 app.use('/juego', spinRoutes);

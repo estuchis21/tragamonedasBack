@@ -71,21 +71,40 @@ exports.login = async (req, res) => {
             { expiresIn: '24h' }
         );
 
-        res.json({
-            success: true,
-            message: 'Login exitoso',
-            token,
-            user: {
-                id: user.id_usuario,
-                nombre: user.nombre,
-                dni: user.dni,
-                saldo: user.saldo,
-                puntaje_acumulado: user.puntaje_acumulado
-            }
-        });
+       res.json({
+        success: true,
+        message: 'Login exitoso',
+        token,
+        user: {
+            id_usuario: user.id_usuario,
+            nombre: user.nombre,
+            dni: user.dni,
+            saldo: user.saldo ?? 0,   // si es null, devuelve 0
+            puntaje_acumulado: user.puntaje_acumulado ?? 0
+        }
+});
+
 
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Error al iniciar sesión' });
     }
+}
+
+
+exports.obtenerUsuarioPorId = async (req, res)  => {
+
+    const { id_usuario } = req.params;
+  try {
+    const pool = await connectDB(); // tu config de conexión
+    const result = await pool
+      .request()
+      .input("id_usuario", sql.Int, id_usuario) // aseguramos que sea número
+      .query("SELECT * FROM Usuario WHERE id_usuario = @id_usuario");
+
+    return res.status(200).json(result.recordset[0]); // devuelve el usuario o undefined si no existe
+  } catch (err) {
+    console.error("Error al obtener usuario:", err);
+    throw err;
+  }
 }
