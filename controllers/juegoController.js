@@ -2,77 +2,51 @@ const sql = require('mssql');
 const connectDB = require('../config/db');
 
 exports.ejecutarSpin = async (req, res) => {
-  const { id_usuario, apuesta, tipo_apuesta } = req.body;
+    const { id_usuario, apuesta } = req.body;
 
-  try {
-    const pool = await connectDB();
+    try {
+        const pool = await connectDB();
 
-    // Ejecutar SP con parámetros
-    const result = await pool.request()
-      .input('id_usuario', sql.Int, id_usuario)
-      .input('apuesta', sql.Int, apuesta)
-      .execute('EjecutarSpin');
+        const result = await pool.request()
+            .input('id_usuario', sql.Int, id_usuario)
+            .input('apuesta', sql.Int, apuesta)
+            .execute('EjecutarSpin');
 
-    // Si no devuelve los 3 recordsets esperados
-    if (!result.recordsets || result.recordsets.length < 3) {
-      return res.status(500).json({
-        success: false,
-        mensaje: 'El procedimiento no devolvió todos los resultados esperados'
-      });
+        const spin = result.recordsets[0][0]; // Contiene spin, premio_total, mensaje, y el NUEVO saldo
+        const matriz = result.recordsets[1];
+        const combinaciones = result.recordsets[2];
+        
+        // ⭐ ELIMINAR ESTA SECCIÓN INNECESARIA:
+        /*
+        const saldoResult = await pool.request()
+            .input('id_usuario', sql.Int, id_usuario)
+            .query('SELECT saldo FROM Usuario WHERE id_usuario=@id_usuario');
+        const saldo = saldoResult.recordset[0]?.saldo || 0;
+        */
+        const saldo = spin.saldo; // Usar el saldo devuelto por el SP
+
+        console.table(matriz);
+
+        res.json({
+            success: true,
+            mensaje: spin.mensaje,
+            spin: spin, // Devolvemos el objeto completo (spin, premio_total, saldo, mensaje)
+            matriz,
+            combinaciones,
+            saldo: saldo // Usar el saldo de 'spin'
+        });
+
+    } catch (error) {
+        // ... (Manejo de errores)
+        console.error('❌ Error al ejecutar el spin:', error);
+        res.status(500).json({
+            success: false,
+            mensaje: 'Error interno del servidor',
+            error: error.message
+        });
     }
-
-
-    // Extraer resultados
-    const spin = result.recordsets[0][0];       // info del spin
-    const matriz = result.recordsets[1];        // matriz generada
-    
-    console.table(matriz)
-
-    const combinaciones = result.recordsets[2]; // combinaciones ganadoras
-
-    // Traer saldo actualizado
-    const saldoResult = await pool.request()
-      .input('id_usuario', sql.Int, id_usuario)
-      .query('SELECT saldo FROM Usuario WHERE id_usuario = @id_usuario');
-
-    const saldo = saldoResult.recordset[0]?.saldo || 0;
-
-    // Verificar si el saldo quedó negativo por algún error
-    if (saldo < 0) {
-      return res.status(400).json({
-        success: false,
-        mensaje: 'Saldo negativo. Transacción cancelada.'
-      });
-    }
-
-    // ✅ Respuesta final
-    res.json({
-      success: true,
-      mensaje: 'Spin ejecutado correctamente',
-      spin,
-      matriz,
-      combinaciones,
-      saldo
-    });
-
-  } catch (error) {
-    console.error('❌ Error al ejecutar el spin:', error);
-
-    // Capturar errores lanzados por el SP (como RAISERROR)
-    if (error.number === 50000) {
-      return res.status(400).json({
-        success: false,
-        mensaje: error.message
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      mensaje: 'Error interno del servidor',
-      error: error.message
-    });
-  }
 };
+
 
 exports.simularSpins = async (req, res) => {
 
